@@ -1,0 +1,14 @@
+"0","knitr::opts_chunk$set(echo = TRUE)"
+"0","library(Amelia) #Visualiser graphique les valeurs manquantes"
+"2","Loading required package: Rcpp
+"
+"2","## 
+## Amelia II: Multiple Imputation
+## (Version 1.8.1, built: 2022-11-18)
+## Copyright (C) 2005-2023 James Honaker, Gary King and Matthew Blackwell
+## Refer to http://gking.harvard.edu/amelia/ for more information
+## 
+"
+"0","library(readxl)"
+"0","data <- read_excel(""dataset.xlsx"", , na = ""NA"")"
+"2","New names:"

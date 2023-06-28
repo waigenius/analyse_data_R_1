@@ -1,0 +1,450 @@
+---
+title: "Rendu projet :  Application aux données de Pollution"
+author: "Waï"
+date: "2023-02-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+library(mlbench)
+library(stringr)
+library(tidyverse)
+library(lubridate)
+library(corrplot)
+library(igraph)
+library(GGally)
+data(Ozone)
+
+```
+
+## Présentation données brutes du dataframe Ozone
+
+Il est important d'importer le package *mlbench* qui permet d'inclurer les données d'Ozone
+
+```{r Ozone}
+
+head(Ozone)
+
+```
+
+## Formatage des données
+
+### Renommage des variables
+
+Cette partie consiste a renommé les variables du dataframe *Ozone* avec des noms plus parlants
+
+```{r}
+
+colnames(Ozone) <- c('month','day_of_month','day_of_week','concentration',
+                     'pressure_height', 'wind_speed','humidity',
+                     'temp_Sandburg','temp_ElMonte', 'inv_base_height',
+                     'pressure_gradient', 'inv_base_temp', 'visibility')
+
+#Réaffichage des 2 éléments d'Ozone
+head(Ozone, 2)
+
+```
+
+### Creation de la variable
+
+Cette partie consiste à créer une variable qu'on appellera *date* au format date qui va recenser la date de prise des mesures.
+
+Il est important d'importer les packages *stringr* et *lubridate*
+```{r}
+
+# ajout une nouvelle variable dans Ozone
+Ozone <- Ozone %>% rownames_to_column("date") %>% as_tibble
+
+# formatage de variable date au format YYYYMMDD
+Ozone$date <- dmy(str_c(Ozone$day_of_month, Ozone$month ,'1976', sep = '/'))
+
+#Réaffichage des 2 éléments d'Ozone
+head(Ozone, 2)
+
+```
+
+###  Retrait des variables inutiles dans Ozone
+
+Cette partie consiste à retirer les variables qui sont devenues inutiles
+
+```{r}
+
+#Suppression de la variable  'jour du mois'
+Ozone <- Ozone %>% select(-day_of_month)
+
+```
+
+### Conversion des variables au format *factor*
+
+Il s'agit de convertir les variables *month* et *day_of_week*
+
+```{r}
+
+Ozone$month <- factor(Ozone$month)
+Ozone$day_of_week <- factor(Ozone$day_of_week)
+
+```
+
+### Ajout de la variable *ozone_veille*
+
+```{r}
+
+#insertion d'une nouvelle variable
+Ozone <- Ozone %>% rownames_to_column("ozone_veille") %>% as_tibble
+
+# insertion des valeurs dans la variable ozone_veille
+for(i in 1:nrow(Ozone)){
+  
+  ifelse(i==1, Ozone$ozone_veille[i] <- Ozone$concentration[i], 
+               Ozone$ozone_veille[i] <- Ozone$concentration[i-1])
+}
+
+#Réaffichage des 2 éléments d'Ozone
+head(Ozone, 2)
+
+```
+
+## Nettoyage des données
+
+### Gestion des variables et individus
+
+Cette partie consiste à évaluer les variables et les individus présentant un fort pourcentage de valeurs manquantes
+
+```{r, eval=FALSE}
+
+#Interrogation de valeurs manquantes NA
+Ozone %>% is.na
+
+```
+
+Gestion des variables
+
+```{r}
+
+percentNA_col <- 100*(Ozone %>% is.na %>% colSums)/nrow(Ozone)
+percentNA_col
+
+#Suppression des variables ayant un pourcentage >30
+for(i in 1:length(percentNA_col)){
+  if(percentNA_col[i] > 30){
+    Ozone <- Ozone[, -i]
+  }
+}
+
+```
+
+Gestion des individus
+
+```{r}
+
+percentNA_row <- 100 * (Ozone %>% is.na %>% rowSums) / ncol(Ozone)
+
+head(percentNA_row)
+
+```
+
+### Imputation des valeurs manquantes
+
+Cette partie consiste à imputer dans les variables *concentration* et *ozone_veille*
+
+```{r}
+
+# vecteur ayant les indices des NA dans Ozone
+indiceNaRow <- which(is.na(Ozone$concentration))
+indiceNaRow
+
+for(i in 1:length(indiceNaRow)){
+  
+  # Recupération de l'indice NA dans le vecteur indiceNaRow
+  indice = indiceNaRow[i]
+  
+  #Création d'un vecteur qui récupère les valeurs encadrent celle de la NA
+  r <- c(Ozone$concentration[indice - 1],
+         Ozone$concentration[indice + 1])
+
+  # Imputation de la valeur NA par la moyenne calculé entre ses valeurs voisines
+  Ozone$concentration [indice]    <- round(mean(r))
+  Ozone$ozone_veille [indice + 1] <- round(mean(r))
+}
+
+```
+
+
+## Description des données
+
+### Représentation graphique
+
+```{r, echo=FALSE,warning=FALSE}
+Ozone %>% ggplot(aes(Ozone$date,Ozone$concentration)) + geom_line()+
+  labs(title = "Evolution de la concentration d'ozone en 1974",
+       x = 'concentration',
+       y = 'mois')
+
+```
+
+### Représentations des corrélations
+
+#### Lien avec les variables
+
+La matrice de corrélation sans seuillage
+
+```{r, echo=FALSE}
+
+ozonecor = Ozone %>% select(-date, -concentration, -ozone_veille, -month, -day_of_week) %>% cor(use = 'pairwise.complete.obs')
+ozonecor %>% corrplot(method = "number", type = "upper")
+
+```
+
+En appliquant un seuil de 0.6 de corrélation
+
+```{r, echo=FALSE}
+ozonecor[abs(ozonecor) < 0.6] = 0
+ozonecor %>% corrplot(method = "number", type = "upper")
+
+```
+
+
+Application du package *igraph* qui nous permet de mieux visualiser les variables qui sont le plus corrélés dans notre dataframe.
+
+```{r, echo=FALSE}
+graph = graph_from_adjacency_matrix(abs(ozonecor), diag = FALSE,
+                                    weighted = TRUE, mode = "upper")
+
+plot(graph)
+```
+
+La description du cluster générée à partir du graphe précédent
+
+```{r}
+# Transformation du graphe en cluster
+cluster = clusters(graph)
+
+#Affichage des éléments du cluster
+cluster$membership
+
+#Renvoit la taille du cluster
+cluster$csize
+
+#Renvoit le nombre de cluster
+cluster$no
+
+```
+
+#### Lien avec les individus
+
+```{r}
+# recupère dans Ozone des variables de valeur numérique
+ozoneInd = Ozone %>% select(-date) %>% as_tibble
+
+#Conversion en type numérique
+ozoneInd$ozone_veille <- as.numeric(ozoneInd$ozone_veille)
+ozoneInd$month <- as.numeric(ozoneInd$month)
+ozoneInd$day_of_week <- as.numeric(ozoneInd$day_of_week)
+
+#Centre les varaible puis calcul de la distance euclidienne
+ozoneD = dist(scale(ozoneInd), upper = TRUE, diag = TRUE)
+ozonedist = exp(-as.matrix(ozoneD)^2)
+
+#graphe
+graph2 = graph_from_adjacency_matrix(ozonedist, diag = FALSE, mode = "upper", weighted = TRUE)
+```
+
+
+```{r, echo=FALSE}
+plot(graph2)
+
+```
+
+La description du cluster générée à partir du graphe ci dessus.
+```{r}
+cluster2 = clusters(graph2)
+names(cluster2)
+cluster2$membership
+cluster2$csize
+cluster2$no 
+```
+
+#### Lien entre les jours de l'année uniquement suivant la concentration d'Ozone
+
+```{r}
+ozoneCDY <- Ozone %>% select(concentration) %>% as_tibble()
+ozoneD3 = dist(scale(ozoneCDY), upper = TRUE, diag = TRUE)  # distance euclidienne
+ozonedist3= exp(-as.matrix(ozoneD3)^2)
+
+graph3 = graph_from_adjacency_matrix(ozonedist3, diag = FALSE, mode = "upper", weighted = TRUE)
+```
+
+```{r, echo=FALSE}
+plot(graph3)
+```
+
+### Moyenne de concentration d'Ozone par mois
+
+```{r}
+
+Ozone %>% group_by(month) %>% summarise(mean = mean(concentration, na.rm=TRUE))
+
+```
+
+### Moyenne de concentration par jour de semaine en hiver et en été
+
+Pour parvenir à répondre, j'ai inséré dans Ozone, une nouvelle variable *saison* comme suit :
+
+```{r}
+Ozone <- Ozone %>% rownames_to_column("saison") %>% as_tibble
+
+```
+
+```{r}
+
+for(i in 1:nrow(Ozone)){
+  
+  if(ymd(Ozone$date[i]) %within% interval(ymd("1976-03-21"), ymd("1976-06-21"))){
+    Ozone$saison[i] <- "printemps"
+    
+  }else{
+    
+    if(ymd(Ozone$date[i]) %within% interval(ymd("1976-06-22"), ymd("1976-09-22"))){
+      Ozone$saison[i] <- "été"
+      
+    }else{
+      
+      if(ymd(Ozone$date[i]) %within% interval(ymd("1976-09-23"), ymd("1976-12-20"))){
+        Ozone$saison[i] <- "automne"
+        
+      }else{
+        Ozone$saison[i] <- "hiver"
+      }
+    }
+  }
+}
+
+```
+
+```{r}
+
+#concentration par jour de semaine en hiver
+Ozone %>% filter(saison == "hiver") %>% group_by(wday(date)) %>% summarise(moyenne = mean(concentration, na.rm=TRUE))
+
+```
+
+```{r}
+
+#concentration par jour de semaine en été
+Ozone %>% filter(saison == "été") %>% group_by(wday(date)) %>% summarise(moyenne = mean(concentration, na.rm=TRUE))
+
+```
+
+### Bonus : Moyenne de concentration par saison
+
+```{r}
+Ozone %>% group_by(saison) %>% summarise(moyenne = mean(concentration, na.rm=TRUE))
+
+```
+
+## Modélisation des données
+
+### Extraction des données
+
+Dans cette partie, nous allons extraire  un échantillon d'apprentissage et un échantillon témoin qui contiennent respectivement 90% et 10% des données, en stratifiant par rapport à la concentration d’Ozone.
+
+```{r}
+# Réordonne par ordre croissant la base de données suivant la concentration d'Ozone
+
+Ozone %>% arrange(concentration)
+
+#Echantillon témoin
+# Récupère 10% des données, implique 366*1/10, soit approximativement 37 observations
+
+echan_Temoin <- Ozone %>% slice(seq(1,37))
+
+# Echantillon apprentissage
+
+echan_Apprent <- Ozone %>% slice(-seq(1,37))
+
+```
+
+### Construction du modèle linéaire
+
+```{r}
+
+#Suppression de tous les NA dans echantillon apprentissage
+
+echan_Apprent_clean <- echan_Apprent[complete.cases(echan_Apprent),]
+
+#Regression linéaire de la concentration journalière en fonction des autres variables
+
+ozone_lin <- lm(formula = concentration ~ ozone_veille + pressure_height + wind_speed + humidity +
+            temp_Sandburg + inv_base_height + pressure_gradient +
+            inv_base_temp + visibility,
+            data = echan_Apprent_clean, 
+            )
+```
+
+
+### Représentation des coefficients de régression linéaire
+
+```{r}
+#Selection de variable(par défaut = backward)
+ozone_AIC <- ozone_lin %>% step(trace = 0)
+
+#Coeff de regression linéaire
+ozone_AIC %>% summary
+ozone_AIC %>% ggcoef
+
+
+#Prédiction de la concentration d'Ozone sur echantillon apprentissage
+
+yhat = ozone_AIC %>% predict(newdata = echan_Apprent_clean)
+
+yhat
+
+```
+
+### Calcul du R² du modèle linéaire choisi sur l'échantillon temoin
+
+```{r}
+
+#Suppression des NA dans l'échantillon temoin
+echan_Temoin_clean <- echan_Temoin[complete.cases(echan_Temoin),]
+
+#calcul du modèle linéaire
+
+ozone_lin_T <- lm(formula = concentration ~ ozone_veille + pressure_height + wind_speed + humidity +
+                  temp_Sandburg + inv_base_height + pressure_gradient +
+                  inv_base_temp + visibility,
+                data = echan_Temoin_clean, 
+)
+
+ozone_AIC_T = ozone_lin_T %>% step(trace = 0)
+ozone_AIC_T %>% summary
+ozone_AIC_T %>% ggcoef
+
+
+yhat_T = ozone_AIC_T %>% predict(newdata = echan_Temoin_clean)
+
+yhat_T
+
+```
+
+Moyenne de la concentration d'Ozone dans l'échantillon témoin
+
+```{r}
+#Moyenne de la concentration d'Ozone dans l'échantillon témoin
+moy <- mean(echan_Temoin$concentration)
+
+#Calcul SCT
+sct <- sum((echan_Temoin$concentration - moy)^2)
+
+#Calcul de SCRg
+scrg <- sum((yhat_T - moy)^2)
+
+# Calcul du R² du modèle linéaire
+
+r_lm <- scrg/sct
+
+r_lm
+
+```

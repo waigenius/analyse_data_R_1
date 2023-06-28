@@ -1,0 +1,2 @@
+"0","# visualisation des 5 premières lignes"
+"0","head(data, 5)"

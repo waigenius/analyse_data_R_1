@@ -1,0 +1,58 @@
+mongoimport --db=users --collection=contacts --file=contacts.json
+
+1.	Importation du jeu de données « tour-pedia.json » dans une base de données appelé « tourPedia » avec une collection « paris »
+
+mongoimport --db=tourPedia --collection=paris --file=tourPedia_paris.json
+
+
+2. Filtrage des lieux par type “accommodation” et service “blanchisserie”
+
+    Analyse du champs category:  Restaurants, Hotels(accommodation), attractions POI
+    Et du champs services
+
+    db.paris.find({
+        'category' : 'accommodation',
+        'services' : 'blanchisserie'
+        
+    })
+
+3. Projection des adresses des lieux de type "accommodation" ;
+
+    db.paris.find({
+        'category' : 'accommodation',
+        
+    },
+    {
+        '_id':0,
+        'location.address':1
+    })
+
+4.  Filtrage des listes de commentaires (reviews) des lieux
+    , pour lesquelles au moins un commentaire (reviews) est écrit en anglais (en) et a une note (rating) supérieure à 3 
+    (attention, LE commentaire en anglais doit avoir un rating de 3 ou plus) ;
+
+db.paris.find({'reviews.language':'en', 'reviews.rating':{'$gt':3}})
+
+OU
+
+db.paris.find({
+    'reviews': {
+        '$elemMatch': {
+            'language' : 'en',
+            'rating' : {'$gt': 3}
+        }
+    }
+})
+
+
+5.  Groupement des lieux par catégorie puis leur comptage;
+
+db.paris.aggregate({ $group : {"_id": "$category", "total" : {$sum : 1}}})
+
+6. Création d'un pipeline d’agrégation pour les lieux de catégorie "accommodation", et donnez 
+le nombre de lieux par valeur de "services".
+
+varMatch = {$match : {'category' : 'accommodation'}}
+varGroup = {$group : {'_id': "$services", 'totalLieux' : {$sum : 1}}}
+
+db.paris.aggregate([varMatch, varGroup])
