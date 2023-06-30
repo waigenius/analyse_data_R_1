@@ -7,9 +7,10 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(Amelia) #Visualiser graphique les valeurs manquantes
+library(Amelia)
 library(readxl)
 library(tidyverse)
+library(ggplot2)
 data <- read_excel("dataset.xlsx", na = "NA")
 ```
 
@@ -69,11 +70,39 @@ barplot(table(data$income), xlab="Revenue", ylab="Count")
 
 On constate que le dataset a plus d'individus de sexe masculin que feminin et qu'il y'a plus d'individus qui ont des revenus inférieur à 50k.
 
-## 5- Etude des variables : Age et capital
+```{r}
+pie(table(data$sex), main = "Genre")
+pie(table(data$income), main = "Revenues")
+
+```
+
+## 5- Etude des variables : Age et capital loss
+```{r}
+summary(data$age)
+
+summary(data$capital.loss)
+
+```
+
+L'âge minimal de notre dataset est 17 ans et le maximum est 90. L'âge moyen des individus est entre 38 et 39 ans.
+
+On constate qu'il ya une présence faible de valeurs au niveau de la variable "capital_loss" car plus de la moitié des observations est nulle
+
+```{r}
+#calcul de la covariance
+cov(x=data$age, y=data$capital.loss)
+```
+La covariance est non nulle et positif donc les variables "age" et "capital" sont dépendants et varient dans le même sens
 
 
+## 6- Données abérrantes des variables précedentes
+```{r}
 
-## 8 . les 9 premiers individus les plus âgés
+
+```
+
+
+## 8 Les 9 premiers individus les plus âgés
 
 ```{r}
 
@@ -108,15 +137,20 @@ Comme la p-value est inférieure à 5 alors les deux variables sont dépendance 
 
 ## 11 Test d'indépendance entre les variables income et sexe
 
-```{r}
 
-pie(table(data$sex), main = "Genre")
-pie(table(data$income), main = "Revenues")
-```
 ```{r}
 # Supposons que vous ayez deux variables qualitatives : "variable1" et "variable2"
 table_data <- table(data$sex, data$income)
 barplot(table_data, beside = TRUE, legend = TRUE, xlab = "Genre", ylab = "Revenues")
+```
 
+## 12 Test d'indépendance entre les varaibles age et capital loss
+
+```{r}
+
+
+#calcul du coefficient de corrélation
+cor(x=data$age, y=data$capital.loss)
 
 ```
+
