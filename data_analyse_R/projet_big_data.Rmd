@@ -9,7 +9,8 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(Amelia) #Visualiser graphique les valeurs manquantes
 library(readxl)
-data <- read_excel("dataset.xlsx", , na = "NA")
+library(tidyverse)
+data <- read_excel("dataset.xlsx", na = "NA")
 ```
 
 ## Présentation
@@ -58,13 +59,64 @@ missmap(data, main = "Missing values VS observed")
 
 On remarque que le dataset possède des valeurs manquantes qui sont très négligeables.
 
+## 4 Etude des variables sexe et income
 
-## Etude des variables :  Sexe et Income
-
-La variable dépendante Y c'est Income
-La variable explicative X c'est Sexe
 ```{r}
-table(x=data$sex, y=data$income)
+table(data$income, data$sex)
+barplot(table(data$sex), xlab="Sexe", ylab="Count")
+barplot(table(data$income), xlab="Revenue", ylab="Count")
+```
+
+On constate que le dataset a plus d'individus de sexe masculin que feminin et qu'il y'a plus d'individus qui ont des revenus inférieur à 50k.
+
+## 5- Etude des variables : Age et capital
+
+
+
+## 8 . les 9 premiers individus les plus âgés
+
+```{r}
+
+sorted_data <- data %>% arrange(age,)
+tail(x = sorted_data, 9)
 
 ```
-On constate qu'il ya plus d'homme qui ont un saliare
+
+## 9 Calcul de la moyenne des âges e, fonction des revenus
+
+```{r}
+moyenne <- aggregate(data$age, by=list(data$income), FUN=mean, na.rm=TRUE)
+moyenne
+
+```
+
+## 10 Test d'indépendance :  Sexe et Income
+Le test Khi-deux qui permet de connaitre la relation existante entre deux variables qualitatives avec chisp.test
+** H0 :  les deux variables sont indépendante si p-value >=5
+** H1 :  les deux variables sont dépendantes
+
+Il s'agit de traiter 
+La variable à expliquer (dépendante) Y c'est Income
+La variable explicative (indépendante) X c'est Sexe
+```{r}
+table(data$income, data$sex)
+chisq.test(x = data$sex, y = data$income)
+
+```
+Comme la p-value est inférieure à 5 alors les deux variables sont dépendance c'est dire que la variable sexe  influence significativement la variable income
+
+
+## 11 Test d'indépendance entre les variables income et sexe
+
+```{r}
+
+pie(table(data$sex), main = "Genre")
+pie(table(data$income), main = "Revenues")
+```
+```{r}
+# Supposons que vous ayez deux variables qualitatives : "variable1" et "variable2"
+table_data <- table(data$sex, data$income)
+barplot(table_data, beside = TRUE, legend = TRUE, xlab = "Genre", ylab = "Revenues")
+
+
+```
