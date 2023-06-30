@@ -60,7 +60,7 @@ missmap(data, main = "Missing values VS observed")
 
 On remarque que le dataset possède des valeurs manquantes qui sont très négligeables.
 
-## 4 Etude des variables sexe et income
+## 4) Etude des variables sexe et income
 
 ```{r}
 table(data$income, data$sex)
@@ -96,13 +96,18 @@ La covariance est non nulle et positif donc les variables "age" et "capital" son
 
 
 ## 6- Données abérrantes des variables précedentes
-```{r}
 
+```{r}
+boxplot(data$age, data$capital.loss, names = c("Age", "Capital loss"), 
+        xlab = "Variables", ylab = "Valeurs", main = "Boxplot de deux variables")
 
 ```
 
+Il existe plus de valeurs abérrantes dans la variable "capital_loss" que dans "age"
 
-## 8 Les 9 premiers individus les plus âgés
+
+
+## 8) Les 9 premiers individus les plus âgés
 
 ```{r}
 
@@ -111,7 +116,7 @@ tail(x = sorted_data, 9)
 
 ```
 
-## 9 Calcul de la moyenne des âges e, fonction des revenus
+## 9) Calcul de la moyenne des âges en fonction des revenus
 
 ```{r}
 moyenne <- aggregate(data$age, by=list(data$income), FUN=mean, na.rm=TRUE)
@@ -119,7 +124,7 @@ moyenne
 
 ```
 
-## 10 Test d'indépendance :  Sexe et Income
+## 10) Test d'indépendance :  Sexe et Income
 Le test Khi-deux qui permet de connaitre la relation existante entre deux variables qualitatives avec chisp.test
 ** H0 :  les deux variables sont indépendante si p-value >=5
 ** H1 :  les deux variables sont dépendantes
@@ -127,6 +132,7 @@ Le test Khi-deux qui permet de connaitre la relation existante entre deux variab
 Il s'agit de traiter 
 La variable à expliquer (dépendante) Y c'est Income
 La variable explicative (indépendante) X c'est Sexe
+
 ```{r}
 table(data$income, data$sex)
 chisq.test(x = data$sex, y = data$income)
@@ -135,7 +141,7 @@ chisq.test(x = data$sex, y = data$income)
 Comme la p-value est inférieure à 5 alors les deux variables sont dépendance c'est dire que la variable sexe  influence significativement la variable income
 
 
-## 11 Test d'indépendance entre les variables income et sexe
+## 11) Test d'indépendance entre les variables income et sexe
 
 
 ```{r}
@@ -144,10 +150,9 @@ table_data <- table(data$sex, data$income)
 barplot(table_data, beside = TRUE, legend = TRUE, xlab = "Genre", ylab = "Revenues")
 ```
 
-## 12 Test d'indépendance entre les varaibles age et capital loss
+## 12) Test d'indépendance entre les variables age et capital loss
 
 ```{r}
-
 
 #calcul du coefficient de corrélation
 cor(x=data$age, y=data$capital.loss)
